@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Customer- Form</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-5">
+    <h1 class="text-center">Customer Management System</h1>
+
+    <hr/>
+
+    <button type="button" class="btn btn-primary mb-3 text-right" data-bs-toggle="modal"
+            data-bs-target="#studentModal">
+        Add New student
+    </button>
+
+    <!--     add student modal-->
+    <div class="modal fade" id="studentModal" tabindex="-1" aria-labelledby="studentModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="container m-2">
+                    <form>
+                        <div class="mb-3">
+                            <label for="id" class="form-label">id</label>
+                            <input type="text" class="form-control" id="id">
+                        </div>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Address</label>
+                            <input type="text" class="form-control" id="address">
+                        </div>
+                        <button id="btn_save_student" type="submit" class="btn btn-primary">Save</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update student Modal -->
+    <div class="modal fade" id="updateStudentModal" tabindex="-1" aria-labelledby="updateStudentModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="container m-2">
+                    <form>
+                        <div class="mb-3">
+                            <label for="updated_student_id" class="form-label">student Id</label>
+                            <input type="text" class="form-control" id="updated_student_id" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="updated_name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="updated_name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="updated_address" class="form-label">Address</label>
+                            <input type="text" class="form-control" id="updated_address">
+                        </div>
+                        <button id="btn_update_student" type="submit" class="btn btn-primary">Update</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <table class="table table-bordered">
+        <thead>
+        <tr>
+            <td>ID</td>
+            <td>Name</td>
+            <td>Address</td>
+        </tr>
+        </thead>
+        <tbody id="student_table_body">
+
+        </tbody>
+    </table>
+</div>
+<script src="js/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+
+    //fetch customers
+    const fetchStudentData = () => {
+        $('#student_table_body').empty();
+
+        $.ajax({
+            url: `http://localhost:8080/Application1_Web_exploded/customer`,
+            type: "GET",
+            success: (res) => {
+                console.log(res);
+                if (res.length === 0) {
+                    $('#student_table_body').append(`<tr><td colspan="4">No customers found</td></tr>`);
+                } else {
+                    res.forEach(student => {
+                        $('#student_table_body').append(`
+                        <tr>
+                            <td>${student.id}</td>
+                            <td>${student.name}</td>
+                            <td>${student.address}</td>
+                            <td>
+                              <button class="btn btn-warning btn-sm" onclick="editStudent('${student.id}')">Edit</button>
+                              <button class="btn btn-danger btn-sm" onclick="deleteStudent('${student.id}')">Delete</button>
+                            </td>
+                        </tr>
+                    `);
+                    });
+                }
+            },
+            error: (err) => {
+                console.error(err);
+                alert("Failed to load customers. Please try again.");
+            }
+        });
+    }
+
+    const editStudent = (uid, name, address) => {
+        $('#updated_student_id').val(uid)
+        $('#updated_name').val(name)
+        $('#updated_address').val(address)
+
+        $('#updateStudentModal').modal('show')
+
+    }
+
+    $('#btn_update_student').click((e) => {
+        e.preventDefault()
+
+        const id = $('#updated_student_id').val()
+        const name = $('#updated_name').val()
+        const address = $('#updated_address').val()
+        $.ajax({
+            url: `http://localhost:8080/Application1_Web_exploded/customer?id=${id}&name=${name}&address=${address}`,
+            type: "PUT",
+            success: (res) => {
+                fetchStudentData()
+                console.log(res)
+            },
+            error: (err) => {
+                console.error(err);
+            }
+        })
+
+    })
+
+    function deleteStudent(id) {
+        if (confirm("Are you sure ?")) {
+            $.ajax({
+                url: `http://localhost:8080/Application1_Web_exploded/customer?id=${id}`,
+                type: "DELETE",
+                success: () => {
+                    alert("Customer deleted successfully!");
+                    fetchStudentData();
+                },
+                error: (err) => {
+                    console.error(err);
+                    alert("Failed to delete customer!");
+                }
+            });
+        }
+    }
+
+        $('#btn_save_student').on('click', function (e) {
+            e.preventDefault();
+
+            const id = $('#id').val().trim();
+            const name = $('#name').val().trim();
+            const address = $('#address').val().trim();
+
+            if (!id || !name || !address) {
+                alert("All fields are required!");
+                return;
+            }
+
+            $.ajax({
+                url: `http://localhost:8080/Application1_Web_exploded/customer`,
+                type: "POST",
+                data: {
+                    id: id,
+                    name: name,
+                    address: address
+                },
+                success: () => {
+                    alert("Customer saved successfully!");
+                    $('#studentModal').modal('hide');
+                    fetchStudentData();
+                    $('#id').val('');
+                    $('#name').val('');
+                    $('#email').val('');
+                },
+                error: (err) => {
+                    console.error(err);
+                    alert("Failed to save customer. Please try again.");
+                }
+            });
+        });
+
+
+
+    fetchStudentData();
+
+</script>
+</body>
+</html>

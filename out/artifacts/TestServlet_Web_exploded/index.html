@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ajax Exa</title>
+</head>
+<body>
+<h1>Ajax Example Project</h1>
+<img src="" id="img">
+<p id="para"> This is an example for ajax</p>
+<button id="ajax-button">Send a Ajax Request</button>
+<!--<table class="table table-bordered table-striped mt-3">
+    <thead>
+    <tr>
+        <th>Post Id</th>
+        <th>Id</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Body</th>
+    </tr>
+    </thead>
+    <tbody id="tblbody">
+    </tbody>
+</table>-->
+<script src="assest/js/jquery-3.7.1.min.js"></script>
+<script>
+    $('#ajax-button').click(function (){
+
+        console.log("Request started!")
+
+        var http = new XMLHttpRequest();
+        http.open('GET','http://localhost:8080/TestServlet_Web_exploded/hello');
+        http.send();
+            http.onreadystatechange = function (){
+                console.log(http.responseText);
+                if(http.status == 200 && http.readyState == 4){
+                    $('#para').text(http.responseText);
+                }
+            }
+
+
+      /*  $.ajax({
+            url:'http://localhost:8080/HelloServelt_Web_exploded/hello',
+           /!* url:'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',*!/
+            method:'GET',
+           /!* async:false,*!/
+            success:function (response){
+                console.log(response);
+                //$('#para').text(response);
+                response.forEach(data => {
+                    const tblrow = `
+                <tr>
+                    <td>${data.postId}</td>
+                    <td>${data.id}</td>
+                    <td>${data.name}</td>
+                    <td>${data.email}</td>
+                    <td>${data.body}</td>
+                </tr>`;
+                    $('#tblbody').append(tblrow);
+                });
+            },error:function (error){
+                console.log(error);
+            }
+        })*/
+        console.log("Request Finished!");
+    })
+</script>
+<script>
+
+  /*  //synchronous
+    console.log("start!");
+    console.log("middle!");
+    console.log("end!");
+
+    //asynchronous
+    console.log("start!");
+    setTimeout(() => {  //time counserving
+        console.log("middle!");
+    },2000)
+    console.log("end!");*/
+</script>
+</body>
+</html>
