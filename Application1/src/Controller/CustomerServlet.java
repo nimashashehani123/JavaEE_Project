@@ -1,6 +1,7 @@
 package Controller;
 
-import db.DbConnection;
+import Bo.BoFactory;
+import Bo.custom.CustomerBo;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -12,9 +13,12 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
 import java.io.IOException;
 import java.sql.*;
+import java.util.List;
 
 @WebServlet(urlPatterns = "/customer")
 public class CustomerServlet extends HttpServlet {
+
+    CustomerBo customerBo = (CustomerBo) BoFactory.getBoFactory().getBo(BoFactory.BoType.CUSTOMER);
 
     protected void GenerateNextCustomerId(){
 
@@ -22,40 +26,53 @@ public class CustomerServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-            try {
-                ResultSet resultSet = DbConnection.getInstance().getConnection().prepareStatement("select * from customer").executeQuery();
-                //create json Arrys
-                JsonArrayBuilder allCustomers = Json.createArrayBuilder();
-                while (resultSet.next()) {
-                    String id = resultSet.getString("id");
-                    String name = resultSet.getString("name");
-                    String address = resultSet.getString("address");
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+            Connection connection =  DriverManager.getConnection("jdbc:mysql://localhost:3306/company", "root","1234");
+            ResultSet resultSet = connection.prepareStatement("select * from customer").executeQuery();
 
-                    JsonObjectBuilder customer = Json.createObjectBuilder();
-                    customer.add("id",id);
-                    customer.add("name",name);
-                    customer.add("address",address);
+            //create json array builder
+            JsonArrayBuilder allCustomer = Json.createArrayBuilder();
 
-                    allCustomers.add(customer);
-                }
-                resp.setContentType("application/json");
-                resp.getWriter().write(allCustomers.build().toString());
 
-            } catch (SQLException | ClassNotFoundException e) {
-                e.printStackTrace();
+            while ((resultSet.next())){
+                String id = resultSet.getString("id");
+                String name = resultSet.getString("name");
+                String address = resultSet.getString("address");
+                System.out.println(id+name+address);
+
+                JsonObjectBuilder customer = Json.createObjectBuilder();
+
+                customer.add("id", id);
+                customer.add("name", name);
+                customer.add("address", address);
+
+                allCustomer.add(customer);
+
             }
 
+            resp.setContentType("application/json");
+            resp.getWriter().write(allCustomer.build().toString());
+
+
+
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
 
     }
+
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
                     String id = req.getParameter("id");
                     String name = req.getParameter("name");
                     String address = req.getParameter("address");
-
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/company", "root", "1234")) {
                         String sql = "INSERT INTO customer (id, name, address) VALUES (?, ?, ?)";
-                        try (PreparedStatement pst = DbConnection.getInstance().getConnection().prepareStatement(sql)) {
+                        try (PreparedStatement pst = connection.prepareStatement(sql)) {
                             pst.setString(1, id);
                             pst.setString(2, name);
                             pst.setString(3, address);
@@ -67,20 +84,24 @@ public class CustomerServlet extends HttpServlet {
                             } else {
                                 resp.getWriter().write("Failed to add customer.");
                             }
-                } catch (ClassNotFoundException | SQLException e) {
+                } catch (SQLException e) {
                     resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                     resp.getWriter().write("Error: " + e.getMessage());
                 }
+    } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    @Override
+        @Override
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
             String id = req.getParameter("id");
             String name = req.getParameter("name");
             String address = req.getParameter("address");
+            try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/company", "root", "1234")) {
 
                 String query = "UPDATE customer SET name = ?, address = ? WHERE id = ?";
-                try (PreparedStatement stmt = DbConnection.getInstance().getConnection().prepareStatement(query)) {
+                try (PreparedStatement stmt = connection.prepareStatement(query)) {
                     stmt.setString(1, name);
                     stmt.setString(2, address);
                     stmt.setString(3, id);
@@ -92,19 +113,23 @@ public class CustomerServlet extends HttpServlet {
                         resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
                         resp.getWriter().write("Customer not found.");
                     }
-                } catch (ClassNotFoundException |SQLException e) {
-                e.printStackTrace();
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                resp.getWriter().write("Database error occurred.");
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    resp.getWriter().write("Database error occurred.");
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
             }
         }
 
-    @Override
+            @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String id = req.getParameter("id");
             String query = "DELETE FROM customer WHERE id = ?";
+                try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/company", "root", "1234")) {
 
-            try (PreparedStatement stmt = DbConnection.getInstance().getConnection().prepareStatement(query)) {
+            try (PreparedStatement stmt = connection.prepareStatement(query)) {
                 stmt.setString(1, id);
                 int rowsAffected = stmt.executeUpdate();
 
@@ -115,8 +140,10 @@ public class CustomerServlet extends HttpServlet {
                     resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
                     resp.getWriter().write("Customer not found.");
                 }
-        } catch (ClassNotFoundException |SQLException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
-    }
-        }
+    } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }}
