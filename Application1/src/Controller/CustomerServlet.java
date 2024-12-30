@@ -2,6 +2,8 @@ package Controller;
 
 import Bo.BoFactory;
 import Bo.custom.CustomerBo;
+import Db.DbConnection;
+import Dto.CustomerDto;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -39,7 +41,6 @@ public class CustomerServlet extends HttpServlet {
                 String id = resultSet.getString("id");
                 String name = resultSet.getString("name");
                 String address = resultSet.getString("address");
-                System.out.println(id+name+address);
 
                 JsonObjectBuilder customer = Json.createObjectBuilder();
 
@@ -61,6 +62,8 @@ public class CustomerServlet extends HttpServlet {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+
+
 
     }
 

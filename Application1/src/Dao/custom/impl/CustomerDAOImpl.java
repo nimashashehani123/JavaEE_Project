@@ -1,8 +1,10 @@
 package Dao.custom.impl;
 import Dao.custom.CustomerDAO;
+import Db.DbConnection;
 import Dto.CustomerDto;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -29,9 +31,12 @@ public class CustomerDAOImpl implements CustomerDAO{
 
     @Override
     public List<CustomerDto> getAll() throws SQLException, ClassNotFoundException {
-
-
-        return null;
+        List<CustomerDto> cusList = new ArrayList<>();
+        ResultSet resultSet = DbConnection.getInstance().getConnection().createStatement().executeQuery("select * from customer");
+        while (resultSet.next()) {
+            cusList.add(new CustomerDto(resultSet.getString(1), resultSet.getString(2), resultSet.getString(3)));
+        }
+        return cusList;
     }
 
     @Override
