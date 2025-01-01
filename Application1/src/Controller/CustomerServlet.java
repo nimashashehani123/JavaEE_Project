@@ -2,8 +2,6 @@ package Controller;
 
 import Bo.BoFactory;
 import Bo.custom.CustomerBo;
-import Db.DbConnection;
-import Dto.CustomerDto;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -15,55 +13,75 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
 import java.io.IOException;
 import java.sql.*;
-import java.util.List;
 
 @WebServlet(urlPatterns = "/customer")
 public class CustomerServlet extends HttpServlet {
 
     CustomerBo customerBo = (CustomerBo) BoFactory.getBoFactory().getBo(BoFactory.BoType.CUSTOMER);
 
-    protected void GenerateNextCustomerId(){
-
+    protected String GenerateNextCustomerId() {
+        String nextId = null;
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/company", "root", "1234")) {
+            String query = "SELECT id FROM customer ORDER BY id DESC LIMIT 1";
+            try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                ResultSet rs = stmt.executeQuery();
+                if (rs.next()) {
+                    String lastId = rs.getString("id");
+                    int numericPart = Integer.parseInt(lastId.replaceAll("[^0-9]", ""));
+                    nextId = String.format("C%03d", numericPart + 1);
+                } else {
+                    nextId = "C001";
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return nextId;
     }
+
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        try {
-            Class.forName("com.mysql.jdbc.Driver");
-            Connection connection =  DriverManager.getConnection("jdbc:mysql://localhost:3306/company", "root","1234");
-            ResultSet resultSet = connection.prepareStatement("select * from customer").executeQuery();
+        if ("generateNewId".equals(req.getParameter("action"))) {
+            String newCustomerId = GenerateNextCustomerId();
+            resp.setContentType("text/plain");
+            resp.getWriter().write(newCustomerId);
+        } else {
+            try {
+                Class.forName("com.mysql.jdbc.Driver");
+                Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/company", "root", "1234");
+                ResultSet resultSet = connection.prepareStatement("select * from customer").executeQuery();
 
-            //create json array builder
-            JsonArrayBuilder allCustomer = Json.createArrayBuilder();
+                //create json array builder
+                JsonArrayBuilder allCustomer = Json.createArrayBuilder();
 
 
-            while ((resultSet.next())){
-                String id = resultSet.getString("id");
-                String name = resultSet.getString("name");
-                String address = resultSet.getString("address");
+                while ((resultSet.next())) {
+                    String id = resultSet.getString("id");
+                    String name = resultSet.getString("name");
+                    String address = resultSet.getString("address");
 
-                JsonObjectBuilder customer = Json.createObjectBuilder();
+                    JsonObjectBuilder customer = Json.createObjectBuilder();
 
-                customer.add("id", id);
-                customer.add("name", name);
-                customer.add("address", address);
+                    customer.add("id", id);
+                    customer.add("name", name);
+                    customer.add("address", address);
 
-                allCustomer.add(customer);
+                    allCustomer.add(customer);
 
+                }
+
+                resp.setContentType("application/json");
+                resp.getWriter().write(allCustomer.build().toString());
+
+
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
             }
 
-            resp.setContentType("application/json");
-            resp.getWriter().write(allCustomer.build().toString());
-
-
-
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
         }
-
-
 
     }
 

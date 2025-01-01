@@ -13,46 +13,70 @@ import java.io.IOException;
 import java.sql.*;
 @WebServlet(urlPatterns = "/item")
 public class ItemServlet extends HttpServlet{
+    protected String GenerateNextItemId() {
+        String nextId = null;
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/company", "root", "1234")) {
+            String query = "SELECT code FROM item ORDER BY code DESC LIMIT 1";
+            try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                ResultSet rs = stmt.executeQuery();
+                if (rs.next()) {
+                    String lastId = rs.getString("code");
+                    int numericPart = Integer.parseInt(lastId.replaceAll("[^0-9]", ""));
+                    nextId = String.format("I%03d", numericPart + 1);
+                } else {
+                    nextId = "I001";
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return nextId;
+    }
+
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        try {
-            Class.forName("com.mysql.jdbc.Driver");
-            Connection connection =  DriverManager.getConnection("jdbc:mysql://localhost:3306/company", "root","1234");
-            ResultSet resultSet = connection.prepareStatement("select * from item").executeQuery();
+        if ("generateNewId".equals(req.getParameter("action"))) {
+            String newItemId = GenerateNextItemId();
+            resp.setContentType("text/plain");
+            resp.getWriter().write(newItemId);
+        } else {
+            try {
+                Class.forName("com.mysql.jdbc.Driver");
+                Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/company", "root", "1234");
+                ResultSet resultSet = connection.prepareStatement("select * from item").executeQuery();
 
-            //create json array builder
-            JsonArrayBuilder allItem = Json.createArrayBuilder();
+                //create json array builder
+                JsonArrayBuilder allItem = Json.createArrayBuilder();
 
 
-            while ((resultSet.next())){
-                String code = resultSet.getString("code");
-                String description = resultSet.getString("description");
-                int qtyOnHand = resultSet.getInt("qtyOnHand");
-                Double unitPrice = resultSet.getDouble("unitPrice");
+                while ((resultSet.next())) {
+                    String code = resultSet.getString("code");
+                    String description = resultSet.getString("description");
+                    int qtyOnHand = resultSet.getInt("qtyOnHand");
+                    Double unitPrice = resultSet.getDouble("unitPrice");
 
-                JsonObjectBuilder item = Json.createObjectBuilder();
+                    JsonObjectBuilder item = Json.createObjectBuilder();
 
-                item.add("code", code);
-                item.add("description", description);
-                item.add("qtyOnHand", qtyOnHand);
-                item.add("unitPrice", unitPrice);
+                    item.add("code", code);
+                    item.add("description", description);
+                    item.add("qtyOnHand", qtyOnHand);
+                    item.add("unitPrice", unitPrice);
 
-                allItem.add(item);
+                    allItem.add(item);
 
+                }
+
+                resp.setContentType("application/json");
+                resp.getWriter().write(allItem.build().toString());
+
+
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
             }
 
-            resp.setContentType("application/json");
-            resp.getWriter().write(allItem.build().toString());
-
-
-
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
         }
-
-
 
     }
 
